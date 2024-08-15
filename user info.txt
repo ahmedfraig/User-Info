@@ -1,4 +1,0 @@
-userID,firstName,lastName,departmentID,age,gendre,year of birth
-122,Ahmed,Ismail,811,21,male,2003
-157,Mohamed,Ismail,184,22,male,2002
-159,Reem,Hisham,811,23,female,2001

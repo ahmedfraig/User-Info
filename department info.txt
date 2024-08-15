@@ -1,3 +1,0 @@
-departmentID,departmentName
-811,Marketing
-184,Production

@@ -1,7 +1,14 @@
 from datetime import datetime
 import os
 import pyodbc
+import pandas as pd
 
+connection_string = (
+"DRIVER={ODBC Driver 17 for SQL Server};"
+"SERVER=DESKTOP-F9SAMSI\SQLEXPRESSS;"  
+"DATABASE=AdventureWorks2022;"  
+"Trusted_Connection=yes;" 
+)
 
 def insert_data_from_file(fileName,insertFunction,conn,cursor):
     if os.path.exists("./" + fileName):
@@ -55,13 +62,6 @@ def department_table_insert(lines,cursor):
                 print("File is empty")
 
 def insert_into_sql_server():
-    connection_string = (
-    "DRIVER={ODBC Driver 17 for SQL Server};"
-    "SERVER=DESKTOP-F9SAMSI\SQLEXPRESSS;"  
-    "DATABASE=AdventureWorks2022;"  
-    "Trusted_Connection=yes;" 
-    )
-
     conn = pyodbc.connect(connection_string)
     cursor = conn.cursor()
 
@@ -101,6 +101,34 @@ def insert_into_sql_server():
     cursor.close()
     conn.close()
 
+def print_contentOf_table(table_name):
+    conn = pyodbc.connect(connection_string)
+    query = "SELECT * FROM "+table_name
+    query_dataFrame = pd.read_sql(query,conn)
+    print(f"\n======================== {table_name} ========================")
+    print(query_dataFrame.to_string(index=False))
+    conn.close()
+
+def serch_with_ID():
+    id = int(get_valid_input(
+    "Please enter ID you want (3 numbers only): ",
+    lambda x: is_valid_id(x),
+    "Enter a valid ID with exactly 3 digits."
+    ))
+
+    conn = pyodbc.connect(connection_string)
+    query = f"SELECT * FROM Users WHERE UserID = " +str(id)
+    query_dataFrame = pd.read_sql(query,conn)
+    if query_dataFrame.empty:
+        query = f"SELECT * FROM Departments WHERE DepartmentID = " +str(id)
+        query_dataFrame = pd.read_sql(query,conn)
+        if query_dataFrame.empty:
+            print(f"ID: {id} not found")
+            return
+    print(query_dataFrame.to_string(index=False))
+    
+    
+
 # dealing with files
 def read_from_file(fileName,read_to,firstStatement,departments):
     if os.path.exists("./"+ fileName):
@@ -112,7 +140,8 @@ def read_from_file(fileName,read_to,firstStatement,departments):
                 with open ("./"+ fileName, "w") as f:
                     f.write(firstStatement)
     else:
-        with open("./"+ fileName, 'w'):
+        with open("./"+ fileName, 'w') as f:
+            f.write(firstStatement)
             pass
 
 def read_from_userInfo_file_to_dictionary(departments, lines):
@@ -154,7 +183,7 @@ def is_valid_gender(value):
     return value.isdigit() and value in {"1", "2"}
 
 def is_valid_option(value):
-    return value.isdigit() and value in {"1", "2", "3", "4", "5"}
+    return value.isdigit() and value in {"1", "2", "3", "4", "5", "6", "7"}
 
 def is_valid_id(value):
     return value.isdigit() and len(value) == 3
@@ -203,15 +232,13 @@ def search_for_specific_user():
 
 #Display
 def display():
-    if os.path.exists("./user info.txt") :
-        with open("./user info.txt", "r") as file:
+    file_path = "./user info.txt"
+    if os.path.exists(file_path) :
+        with open(file_path, "r") as file:
             lines = file.readlines()
             if len(lines) > 1:
-                for line in lines[1:]:
-                    words = line.strip().split(',')
-                    userID, firstName, lastName, departmentID, age, gender, year_of_birth = words
-                    departmentID = int(departmentID)
-                    print(f"User ID: {userID}, First Name: {firstName}, Last Name: {lastName}, Age: {age}, Gendre: {gender}, Year of birth: {year_of_birth}, Department ID: {departmentID}, Department Name: {departments[departmentID][0]}")
+                df = pd.read_csv(file_path)
+                print(df.to_string(index = False))
             else:
                 print("File is Empty")
     else:
@@ -223,8 +250,8 @@ def display():
 def userOption():
     while True:
         user_option = get_valid_input(
-            "Enter your option(1,2,3,4,5):\n1- Enter new data\n2- Display data\n3- Search for a user\n4- Insert Into sql server\n5- Exit\nEnter your option: ",
-            is_valid_option,"please,Enter 1,2,3,4 or 5 for option")
+            "Enter your option(1,2,3,4,5,6,7):\n1- Enter new data\n2- Display data\n3- Search for a user\n4- Insert Into sql server\n5- Display content of tables\n6- search for ID in tables\n7- Exit\nEnter your option: ",
+            is_valid_option,"please,Enter 1,2,3,4,5,6 or 7 for option")
         read_from_file("user info.txt",read_from_userInfo_file_to_dictionary,"userID,firstName,lastName,departmentID,age,gendre,year of birth\n",departments)
         read_from_file("department info.txt",read_from_departmentInfo_to_dictionary,"departmentID,departmentName\n",departments)
         if user_option == "1":
@@ -235,6 +262,11 @@ def userOption():
             search_for_specific_user()
         elif user_option == "4":
             insert_into_sql_server()
+        elif user_option == "5":
+            print_contentOf_table("Users")
+            print_contentOf_table("Departments")
+        elif user_option == "6":
+            serch_with_ID()
         else:
             return
 #-----------------------------------------------------
@@ -256,7 +288,7 @@ def userInfo():
 
     userID = int(get_valid_input(
         "Please enter your ID (3 numbers only): ",
-        lambda x: is_valid_id(x) and id_not_in_use(x)[0] and departmentIDNotInDepartments(x),
+        lambda x: is_valid_id(x) and id_not_in_use(x)[0] and departmentIDNotInDepartments(x) and x != str(departmentID),
         "Enter a valid ID with exactly 3 digits and ensure it's unique."
     ))
 
